@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataRobot Lineage Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- <script>
+        window.onload = function () {
+            alert('The select box takes a minute to populate.  We need to retrieve your use cases from datarobot and it takes a while!');
+        }
+    </script> -->
+</head>
+<img src="./datarobot.png" alt="datarobot", width = 25%, height="auto">
+
+
+<body>
+    <p>
+        <label for="api-token" id="api-token-label">Enter API Token:</label>
+        <input type="password" id="api-token" placeholder="Your redacted text here">
+    </p>
+    <p>
+        <label for="endpoint" id="endpoint-label">Enter DataRobot endpoint:</label>
+        <input type="text" id="endpoint" value="https://app.datarobot.com/api/v2">
+    </p>
+    <p>
+        <button id="grabUseCases">Grab Use Cases From DataRobot</button>
+    </p>
+
+    <form>
+        <label>Select a use case</label>
+        <select id="myDropdown"></select>
+        
+    </form>
+    <h2>Directed Layout</h2>
+    <label class="switch">
+        <input type="checkbox" id = "directed-graph-toggle">
+        <span class="slider round"></span>
+    </label>
+    <p>
+        <input type="button" id="btn-UD" value="Up-Down" style="display: none;"/>
+        <input type="button" id="btn-DU" value="Down-Up" style="display: none;"/>
+        <input type="button" id="btn-LR" value="Left-Right" style="display: none;"/>
+        <input type="button" id="btn-RL" value="Right-Left" style="display: none;"/>
+        <input type="hidden" id="direction" value="LR" style="display: none;"/>
+      </p>
+    <h2 id="title">Graph of Use Case</h2>
+    <div class="container">
+        <div id="network"></div>
+        <div id="sidebar" class="sidebar">
+            <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+            <div id = "sidebar-content" class="sidebar-content">Select a node to view its details!!!</div>
+        </div>
+    </div>
+    <!-- Include Vis Network library via CDN -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <!-- Include your own script with type="module" -->
+    <script type="module" src="script.js"></script>
+
+    <script src="button.js"></script>
+
+</body>
+
+</html>
