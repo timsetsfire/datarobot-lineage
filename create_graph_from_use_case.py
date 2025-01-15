@@ -27,60 +27,6 @@ parser.add_argument(
 
 client = dr.Client()
 
-class UseCaseAssets(object):
-    use_case_assets = ["applications",
-                   "datasets",
-                   "playgrounds",
-                   "vectorDatabases",
-                   "projects",
-                   "notebooks",
-                   "applications",
-                   "recipes",
-                   "customModelVersions",
-                   "customModels",
-                   "registeredModelVersions",
-                   "registeredModels",
-                   "deployments",
-                   "customApplications",
-                   "customJobs",
-                #    "models"
-                   ]
-    keys_of_interest = {
-        "applications": [],
-        "datasets": [],
-        "playgrounds": [],
-        "vectorDatabases": [],
-        "projects": [],
-        "notebooks": [],
-        "applications": [],
-        "customModelVersions": [],
-        "customModels": [],
-        "registeredModels": [],
-        "deployments": [],
-        "customApplications": [],
-        "customJobs": []
-    }
-    def __init__(self, use_case_id):
-        self.use_case = client.get(f"useCases/{use_case_id}").json()
-        self.use_case_assets = []
-        self.use_case_assets_detail = {}
-        self.resources = client.get(f"useCases/{use_case_id}/resources").json()
-        self.sharedRoles = client.get(f"useCases/{use_case_id}/sharedRoles").json()
-        self.data = client.get(f"useCases/{use_case_id}/data")
-        # for asset in UseCaseAssets.use_case_assets:
-        #     try:
-        #         if self.use_case[f"{asset}Count"] > 0:
-        #             self.use_case_assets.append(asset)
-        #     except Exception as e:
-        #         print(f"no count for {asset}")
-        for asset in UseCaseAssets.use_case_assets:
-            url = f"useCases/{use_case_id}/{asset}"
-            try:
-                self.use_case_assets_detail[asset] = client.get(f"useCases/{use_case_id}/{asset}").json()["data"]
-            except Exception as e:
-                print(e)
-                print(url)
-
 def get_datastore_node(datastore_id, use_case_id):
     resp = client.get(f"externalDataStores/{datastore_id}").json()
     node = dict( assetId = datastore_id, label = "datastore", 
