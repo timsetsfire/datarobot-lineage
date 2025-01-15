@@ -1,7 +1,7 @@
 ## DataRobot Lineage Viewer
 
 This is a first take at an application that allows you to view dependency graphs for DataRobot Use Cases.  
-[lineage](./app.png)
+![lineage](./app.png)
 
 ## Build
 ```
