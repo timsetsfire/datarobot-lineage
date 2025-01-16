@@ -5,7 +5,7 @@ This is a first take at an application that allows you to view dependency graphs
 
 ## Build
 ```
-docker build -t lineage-app .
+docker build --platform="linux/amd64" -t lineage-app .
 docker run --publish 8080:8080 lineage-app   
 ```
 ## Use
