@@ -2,15 +2,31 @@
 // made a changes
 var edges = null;
 var nodes = null;
+var subEdges = null;
+var subNodes = null;
+var visibleNodes = []
+
+var nodesFilter = (node) => {
+  return visibleNodes.includes(node.id)
+};
+const edgesFilter = (edge) => { 
+  return true 
+}
+
+var nodesDataset = new vis.DataSet(nodes)
+var edgesDataset = new vis.DataSet(edges)
+var nodesView = new vis.DataView(nodesDataset, { filter: nodesFilter });
+var edgesView = new vis.DataView(edgesDataset, { filter: edgesFilter });
+const dataView = {edges: edgesView, nodes: nodesView}
+
+
 var container = document.getElementById("network");
 // container.innerText = "Give us a moment while we grab your use cases from DataRobot"
 var data = {edges: edges, nodes: nodes}
 
+const artifactList = document.getElementById("artifact-list") 
 
-const grabUseCases = document.getElementById("grabUseCases")
-const dropdown = document.getElementById('myDropdown'); // Replace 'myDropdown' with the ID of your dropdown
-// const dropdownInit = document.createElement('option')
-// dropdown.appendChild(dropdownInit)
+const useCasesDropdown = document.getElementById('use-cases'); // Replace 'myuseCasesDropdown' with the ID of your useCasesDropdown
 const useCasesRet = await fetch("getUseCases")
 const useCases = await useCasesRet.json()
 if (useCases.length > 0) { 
@@ -18,16 +34,50 @@ if (useCases.length > 0) {
     const option = document.createElement('option');
     option.value = useCase.id; // Assuming your JSON has a 'value' field
     option.text = useCase.name;  // Assuming your JSON has a 'text' field
-    dropdown.appendChild(option);
+    useCasesDropdown.appendChild(option);
   }
 }
 
-// var useCases = null
-// var out  = fetch(datarobotEndpoint + "/user", {
-//   method: "GET",
-//   headers: { "Authorization": `Bearer ${datarobotToken}` }
-// }).then( response => response.json()).then( resp => console.log(resp))
+document.querySelectorAll('.list-item').forEach(item => {
+  item.addEventListener('click', function (e) {
+      const nestedList = this.querySelector('.nested-list');
+      if (nestedList && nestedList.contains(e.target)) {
+          // If a nested-list item is clicked
+          const clickedItem = e.target;
+            const value = clickedItem.getAttribute('value');
+            if (value) {
+                alert(`Value: ${value}`);
+            }
+      } else if (nestedList) {
+          // If a parent list-item with a nested list is clicked
+          e.stopPropagation(); // Prevent event propagation
+          nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
+      } else {
+          // Leaf node without nested list
+          console.log('what did the five fingers say to the face!');
+      }
+  });
+});
 
+var apiConfigured = false
+const configureApi = document.getElementById("configure-api")
+configureApi.onclick = function () { 
+  apiConfigured = !apiConfigured 
+  const title = document.getElementById("configure-api-title")
+  const token = document.getElementById("api-token")
+  const tokenLabel = document.getElementById("api-token-label")
+  const endpoint = document.getElementById("endpoint")
+  const endpointLabel = document.getElementById("endpoint-label")
+  console.log(`api title ${title.innerText}`)
+  title.innerText = apiConfigured ? "API Configuration" : ""
+  token.style.display = apiConfigured ? "" : "none"
+  tokenLabel.style.display = apiConfigured ? "" : "none"
+  endpoint.style.display = apiConfigured ? "" : "none"
+  endpointLabel.style.display = apiConfigured ? "" : "none"
+
+}
+
+var grabUseCases = document.getElementById("get-use-cases")
 grabUseCases.onclick = function () { 
   container.innerText = "Grabbing your use cases from DataRobot.  This might take a minute"
   const token = document.getElementById("api-token")
@@ -51,12 +101,12 @@ grabUseCases.onclick = function () {
       (response) => response.json()
     ).then(
       (useCases) => {
-        dropdown.options.length = 0;
+        useCasesDropdown.options.length = 0;
         for (const useCase of useCases) {
           const option = document.createElement('option');
           option.value = useCase.id; // Assuming your JSON has a 'value' field
           option.text = useCase.name;  // Assuming your JSON has a 'text' field
-          dropdown.appendChild(option);
+          useCasesDropdown.appendChild(option);
         }
         container.innerText = "Select a use case from the drop down box"
         console.log(useCases)
@@ -69,6 +119,11 @@ grabUseCases.onclick = function () {
     );
 };
 
+const resetGraph = document.getElementById("reset-button")
+resetGraph.onclick = function () { 
+  draw(true)
+}
+
 var directedGraphToggleOn = false
 const directedGraphToggle = document.getElementById("directed-graph-toggle")
 directedGraphToggle.onclick = function () { 
@@ -78,7 +133,7 @@ directedGraphToggle.onclick = function () {
   btnDU.style.display = directedGraphToggleOn ? "" : "none"
   btnLR.style.display = directedGraphToggleOn ? "" : "none"
   btnRL.style.display = directedGraphToggleOn ? "" : "none"
-  draw()
+  draw(false)
 }
 
 var directionInput = document.getElementById("direction");
@@ -103,7 +158,7 @@ btnRL.onclick = function () {
   draw();
 };
 
-function draw() { 
+function draw(resetFilter = true) { 
   var container = document.getElementById("network")
   var options = graphOptions()
   console.log("options in draw function")
@@ -112,14 +167,26 @@ function draw() {
     nodes: nodes, 
     edges: edges
   }
-  var network = new vis.Network(container, data, options);
-  network.on('click', function (event) {
+  if (resetFilter) {
+    for(let i = 0; i < nodes.length; i++){
+      visibleNodes.push(nodes[i].id)
+    }
+  } 
+  
+  edgesDataset = new vis.DataSet(edges)
+  nodesDataset = new vis.DataSet(nodes)
+  console.log(`edge dataset1`)
+  console.log(edgesDataset.get()[0])
+  console.log(`nodes dataset1`)
+  console.log(nodesDataset.get()[0])
+  edgesView = new vis.DataView(edgesDataset, { filter: edgesFilter })
+  nodesView = new vis.DataView(nodesDataset, { filter: nodesFilter })
+  var network = new vis.Network(container, {nodes: nodesView, edges: edgesView}, options);
 
+  network.on('click', function (event) {
     const { nodes: selectedNodes } = event;
     const node = nodes.filter(n => n.id == selectedNodes)[0];
-
     if (selectedNodes.length > 0) {
-
       const nodeInfo = [];
       nodeInfo.push(`<strong>Node Details</strong> <br>`)
       const keys = Object.keys(node)
@@ -138,8 +205,63 @@ function draw() {
       sideBarContent.appendChild(shareButton);
     }
   })
+
+  network.on('doubleClick', function (event) {
+    const { nodes: selectedNodes } = event;
+    console.log(`checking edges in double clikc`)
+    let edgeList = edgesDataset.get()
+    console.log(edgeList)
+    console.log(`checking selected node id ${selectedNodes[0]}`)
+    console.log(`visible nodes before update`)
+    console.log(visibleNodes)
+    for(let i = 0; i <= edgeList.length; i++){
+      let currentEdge = edgeList[i]
+      if (currentEdge) { 
+        // console.log(`viewing edge and keys ${i}`)
+        // console.log(currentEdge)
+        // console.log(`viewing edge from ${currentEdge.from || "no-id"}`)
+        // console.log(`viewing edge to ${currentEdge.to || "no-id" }`)
+        if (selectedNodes[0] == edgeList[i].from){
+          visibleNodes.push(edgeList[i].to)
+        } else if (selectedNodes[0] == edgeList[i].to) {
+          visibleNodes.push(edgeList[i].from)
+        } else {
+          console.log("no match found")
+        }
+      } else { 
+        console.log("edge appears to be undefined")
+      }
+
+    }
+    console.log(`visible nodes after update`)
+    console.log(visibleNodes)
+    nodesView.refresh()
+    edgesView.refresh()
+    console.log("nodeView was refreshed")
+    console.log("looking at ALL nodes")
+    console.log(nodes)
+
+  })
   console.log("graph should be visible")
   console.log(network)
+}
+
+
+function drawSubgraph(id) { 
+  subEdges = []
+  subNodes = []
+  var container = document.getElementById("network")
+  var options = graphOptions()
+  visibleNodes.length = 0
+  for( let i = 0; i < edges.length; i++) {
+    if( edges[i].from == id || edges[i].to == id) {
+      visibleNodes.push(edges[i].from)
+      visibleNodes.push(edges[i].to)
+    }
+  }
+
+  // nodesView.refresh()
+  draw(false)
 }
 
 function graphOptions() { 
@@ -153,6 +275,7 @@ function graphOptions() {
     }}
   else { 
     return { 
+      autoResize: false, 
       nodes: { shape: 'dot', size: 20 },
       edges: {
         smooth: {
@@ -186,19 +309,19 @@ async function updateGraph() {
   console.log(nodes)
   console.log(edges)
   draw()
+  updateArtifactList()
 }
 
 console.log("network data")
 console.log(network)
 
 
-
-
-dropdown.addEventListener("change", () => {
+useCasesDropdown.addEventListener("change", () => {
   const h2Title = document.getElementById("title")
-  const selectedValue = dropdown.value;
-  h2Title.innerText = `Graph of Use Case ${dropdown.options[dropdown.selectedIndex].innerHTML}`
+  const selectedValue = useCasesDropdown.value;
+  h2Title.innerText = `Graph of Use Case ${useCasesDropdown.options[useCasesDropdown.selectedIndex].innerHTML}`
   console.log(`attempting to graph graph use case id ${selectedValue}`)
+  document.getElementById("artifact-list").innerHTML = ""
   container.innerText = "Updating Graph - this might take a minute"
   sideBarContent.innerHTML = "Select a node to see its detials!!"
   fetch(`useCases/${selectedValue}`).then(response => {
@@ -221,6 +344,92 @@ dropdown.addEventListener("change", () => {
 }
 )
 
+function updateArtifactList() {
+  var artifacts = {}
+  for( let i = 0; i < nodes.length; i++) {
+      var node = nodes[i]
+      var nodeType = node["label"]
+      var nodeName = node.name || `${nodeType}-${node.assetId}`
+      if ( artifacts[nodeType]) {
+          artifacts[nodeType].push(node)
+      } else {
+          artifacts[nodeType] = [node]
+      }
+  }
+  const artifactList = document.getElementById("artifact-list") 
+  const htmlString = []
+  for (const k of Object.keys(artifacts)) { 
+    htmlString.push(`<li class="list-item">${k}`)
+    htmlString.push(`<ul class="nested-list">`)
+    for( node of artifacts[k]) {
+        const name = node.name || `${node.label}-${node.id}`
+        htmlString.push(`<li class="list-item" value=${node.id}>${name}`)
+    }
+    htmlString.push(`</ul>`)
+    htmlString.push(`</li>`)
+  }
+  const htmlFinalString = htmlString.join(``)
+  artifactList.innerHTML = htmlFinalString
+
+  document.querySelectorAll('.list-item').forEach(item => {
+    item.addEventListener('click', function (e) {
+        const nestedList = this.querySelector('.nested-list');
+        if (nestedList && nestedList.contains(e.target)) {
+            // If a nested-list item is clicked
+            const clickedItem = e.target;
+              const value = clickedItem.getAttribute('value');
+              if (value) {
+                  // alert(`Value: ${value}`);
+                  drawSubgraph(value)
+              }
+        } else if (nestedList) {
+            // If a parent list-item with a nested list is clicked
+            e.stopPropagation(); // Prevent event propagation
+            nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
+        } else {
+            // Leaf node without nested list
+            console.log('what did the five fingers say to the face!');
+        }
+    });
+  })
+// document.querySelectorAll('.list-item').forEach(item => {
+//   item.addEventListener('click', function (e) {
+//       const nestedList = this.querySelector('.nested-list');
+//       console.log(nestedList)
+//       if (nestedList) {
+//           console.log("looking at nest list")
+//           console.log(nestedList)
+//           e.stopPropagation();
+//           nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
+//       } else {
+//         alert("Surprise")
+//       }
+//   });
+// });
+// document.querySelectorAll('.list-item').forEach(item => {
+//   item.addEventListener('click', function (e) {
+//       const nestedList = this.querySelector('.nested-list');
+//       if (nestedList && nestedList.contains(e.target)) {
+//           // If a nested-list item is clicked
+//           alert('Surprise!');
+//       } else if (nestedList) {
+//           // If a parent list-item with a nested list is clicked
+//           e.stopPropagation(); // Prevent event propagation
+//           nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
+//       } else {
+//           // Leaf node without nested list
+//           alert('Surprise!');
+//       }
+//   });
+// });
+
+}
+
+
+
+
+
+
 const sidebar = document.getElementById("sidebar")
 const sideBarContent = document.getElementById("sidebar-content")
 // Create a text box (input element)
@@ -231,7 +440,7 @@ emailInput.id = 'emailInput'; // Optional: Set an ID for the input
 
 // Create a button
 const shareButton = document.createElement('button');
-shareButton.textContent = 'Share Node Asset and Parents'; // Set the button text
+shareButton.textContent = 'Share Node Asset and Parents (not working)'; // Set the button text
 
 // Append the input and button to the container
 
