@@ -206,19 +206,13 @@ def get_deployment_node(dep_id, use_case_id):
         reg_model_name = mp["name"]
         try:
             reg_model_versions = client.get(f"registeredModels/{reg_model_id}/versions").json()["data"]
+            reg_model_version = [v for v in reg_model_versions if v["name"] == reg_model_name].pop()
+            reg_model_node = get_registered_model_node(reg_model_id, reg_model_version["id"], use_case_id)
+            reg_model_node = {"assetId": reg_model_id, "note": e}
         except Exception as e:
             print(e)
             print("cant retrieve reg model versions")
-            return None
-        reg_model_version = [v for v in reg_model_versions if v["name"] == reg_model_name].pop()
-        try: 
-            reg_model_node = get_registered_model_node(reg_model_id, reg_model_version["id"], use_case_id)
-        except Exception as e:
-            print(e)
-            print("cant get reg model node")
-            print(f"id: {reg_model_id}, version: {reg_model_version}")
-            print(reg_model_version.keys())
-            return None
+            reg_model_node = {"assetId": reg_model_id, "note": e}
         deployment_node = dict(assetId = dep.id, name = dep.label, label = "deployments", url = os.path.join(URL, "console-nextgen", "deployments", dep.id, "overview"),
                                 parents = [
                                     reg_model_node
