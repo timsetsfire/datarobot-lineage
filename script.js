@@ -5,6 +5,7 @@ var nodes = null;
 var subEdges = null;
 var subNodes = null;
 var visibleNodes = []
+var activeNodeId = null
 
 var nodesFilter = (node) => {
   return visibleNodes.includes(node.id)
@@ -54,7 +55,7 @@ document.querySelectorAll('.list-item').forEach(item => {
           nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
       } else {
           // Leaf node without nested list
-          console.log('what did the five fingers say to the face!');
+          // console.log('what did the five fingers say to the face!');
       }
   });
 });
@@ -68,7 +69,6 @@ configureApi.onclick = function () {
   const tokenLabel = document.getElementById("api-token-label")
   const endpoint = document.getElementById("endpoint")
   const endpointLabel = document.getElementById("endpoint-label")
-  console.log(`api title ${title.innerText}`)
   title.innerText = apiConfigured ? "API Configuration" : ""
   token.style.display = apiConfigured ? "" : "none"
   tokenLabel.style.display = apiConfigured ? "" : "none"
@@ -88,7 +88,6 @@ grabUseCases.onclick = function () {
   const endpointLabel = document.getElementById("endpoint-label")
   // endpoint.style.display = "none"
   // endpointLabel.style.display = "none"
-  console.log(`endpoint => ${endpoint.value}`)
   const data = JSON.stringify( {
     token:token.value, 
       endpoint:endpoint.value
@@ -109,7 +108,6 @@ grabUseCases.onclick = function () {
           useCasesDropdown.appendChild(option);
         }
         container.innerText = "Select a use case from the drop down box"
-        console.log(useCases)
       }
     ).catch(
       (error) => {
@@ -128,7 +126,6 @@ var directedGraphToggleOn = false
 const directedGraphToggle = document.getElementById("directed-graph-toggle")
 directedGraphToggle.onclick = function () { 
   directedGraphToggleOn = ! directedGraphToggleOn
-  console.log(`value of toggle is ${directedGraphToggleOn}`)
   btnUD.style.display = directedGraphToggleOn ? "" : "none"
   btnDU.style.display = directedGraphToggleOn ? "" : "none"
   btnLR.style.display = directedGraphToggleOn ? "" : "none"
@@ -161,8 +158,6 @@ btnRL.onclick = function () {
 function draw(resetFilter = true) { 
   var container = document.getElementById("network")
   var options = graphOptions()
-  console.log("options in draw function")
-  console.log(options)
   var data = {
     nodes: nodes, 
     edges: edges
@@ -175,10 +170,6 @@ function draw(resetFilter = true) {
   
   edgesDataset = new vis.DataSet(edges)
   nodesDataset = new vis.DataSet(nodes)
-  console.log(`edge dataset1`)
-  console.log(edgesDataset.get()[0])
-  console.log(`nodes dataset1`)
-  console.log(nodesDataset.get()[0])
   edgesView = new vis.DataView(edgesDataset, { filter: edgesFilter })
   nodesView = new vis.DataView(nodesDataset, { filter: nodesFilter })
   var network = new vis.Network(container, {nodes: nodesView, edges: edgesView}, options);
@@ -186,6 +177,8 @@ function draw(resetFilter = true) {
   network.on('click', function (event) {
     const { nodes: selectedNodes } = event;
     const node = nodes.filter(n => n.id == selectedNodes)[0];
+    activeNodeId = node.id
+    console.log(`logging active node id ${activeNodeId}`)
     if (selectedNodes.length > 0) {
       const nodeInfo = [];
       nodeInfo.push(`<strong>Node Details</strong> <br>`)
@@ -201,26 +194,19 @@ function draw(resetFilter = true) {
         }
       }
       sideBarContent.innerHTML = nodeInfo.join(``)
-      sideBarContent.appendChild(emailInput);
-      sideBarContent.appendChild(shareButton);
+      // sideBarContent.appendChild(emailInput);
+      // sideBarContent.appendChild(shareButton);
+      sideBarContent.appendChild(exportButton)
+      
     }
   })
 
   network.on('doubleClick', function (event) {
     const { nodes: selectedNodes } = event;
-    console.log(`checking edges in double clikc`)
     let edgeList = edgesDataset.get()
-    console.log(edgeList)
-    console.log(`checking selected node id ${selectedNodes[0]}`)
-    console.log(`visible nodes before update`)
-    console.log(visibleNodes)
     for(let i = 0; i <= edgeList.length; i++){
       let currentEdge = edgeList[i]
       if (currentEdge) { 
-        // console.log(`viewing edge and keys ${i}`)
-        // console.log(currentEdge)
-        // console.log(`viewing edge from ${currentEdge.from || "no-id"}`)
-        // console.log(`viewing edge to ${currentEdge.to || "no-id" }`)
         if (selectedNodes[0] == edgeList[i].from){
           visibleNodes.push(edgeList[i].to)
         } else if (selectedNodes[0] == edgeList[i].to) {
@@ -233,33 +219,109 @@ function draw(resetFilter = true) {
       }
 
     }
-    console.log(`visible nodes after update`)
-    console.log(visibleNodes)
     nodesView.refresh()
     edgesView.refresh()
-    console.log("nodeView was refreshed")
-    console.log("looking at ALL nodes")
-    console.log(nodes)
-
   })
-  console.log("graph should be visible")
-  console.log(network)
 }
 
+function getNode(id) { 
+  for(let j = 0; j <= nodes.length; j++) { 
+    if(nodes[j].id == id) {
+      return nodes[j]
+    }
+  }
+}
+
+function getParents(id) { 
+  let parentNodes = []
+  function helper(id) { 
+    let n = getNode(id) 
+    let parents = n.parents || []
+    if(parents.length > 0) { 
+      for(let j = 0; j < parents.length; j++) {
+        parentNodes.push( getNode(parents[j].id))
+        helper(parents[j].id)
+      }
+    }
+  }
+  helper(id)
+  console.log("logging parents from getParents funct")
+  console.log(parentNodes)
+  return parentNodes
+}
+
+function getChildren(id) { 
+  let childrenNodes = []
+  function helper(id) {
+    for(let j = 0; j < edges.length; j++) { 
+      if(id == edges[j].from) { 
+        let child = getNode(edges[j].to)
+        childrenNodes.push(child)
+        helper(edges[j].to)
+      }
+    }
+  }
+  helper(id)
+  return childrenNodes
+}
+
+function topologicalSort(nodes, edges) {
+  const inDegree = {};
+  const result = [];
+  const queue = [];
+
+  // Calculate in-degree of each node
+  nodes.forEach(node => inDegree[node.id] = 0);
+  edges.forEach(edge => inDegree[edge.to]++);
+
+  // Add nodes with in-degree 0 to the queue
+  for (const nodeId in inDegree) {
+    if (inDegree[nodeId] === 0) {
+      queue.push(nodeId);
+    }
+  }
+
+  // Process nodes in topological order
+  while (queue.length > 0) {
+    const nodeId = queue.shift();
+    result.push(getNode(nodeId));
+
+    edges.forEach(edge => {
+      if (edge.from === nodeId) {
+        inDegree[edge.to]--;
+        if (inDegree[edge.to] === 0) {
+          queue.push(edge.to);
+        }
+      }
+    });
+  }
+
+  if (result.length !== nodes.length) {
+    throw new Error("Cycle detected in the graph");
+  }
+
+  return result;
+}
 
 function drawSubgraph(id) { 
   subEdges = []
   subNodes = []
+
+  let children = getChildren(id) 
+  let parents = getParents(id)
+  let nodes = [getNode(id)].concat(children).concat(parents)
   var container = document.getElementById("network")
   var options = graphOptions()
   visibleNodes.length = 0
-  for( let i = 0; i < edges.length; i++) {
-    if( edges[i].from == id || edges[i].to == id) {
-      visibleNodes.push(edges[i].from)
-      visibleNodes.push(edges[i].to)
-    }
+  // for( let i = 0; i < edges.length; i++) {
+  //   if( edges[i].from == id || edges[i].to == id) {
+  //     visibleNodes.push(edges[i].from)
+  //     visibleNodes.push(edges[i].to)
+  //   }
+  // }
+  for(let i = 0; i < nodes.length; i++) {
+    visibleNodes.push(nodes[i].id)
   }
-
   // nodesView.refresh()
   draw(false)
 }
@@ -300,27 +362,19 @@ function graphOptions() {
 }
 
 async function updateGraph() {
-  console.log("updating graph!")
   const retNodes = await fetch("getNodes",{mode: 'no-cors'})
   const retEdges = await fetch("getEdges",{mode: 'no-cors'})
   nodes = await retNodes.json()
   edges = await retEdges.json()
-  console.log("nodes and edges retrieved")
-  console.log(nodes)
-  console.log(edges)
   draw()
   updateArtifactList()
 }
-
-console.log("network data")
-console.log(network)
 
 
 useCasesDropdown.addEventListener("change", () => {
   const h2Title = document.getElementById("title")
   const selectedValue = useCasesDropdown.value;
   h2Title.innerText = `Graph of Use Case ${useCasesDropdown.options[useCasesDropdown.selectedIndex].innerHTML}`
-  console.log(`attempting to graph graph use case id ${selectedValue}`)
   document.getElementById("artifact-list").innerHTML = ""
   container.innerText = "Updating Graph - this might take a minute"
   sideBarContent.innerHTML = "Select a node to see its detials!!"
@@ -328,7 +382,7 @@ useCasesDropdown.addEventListener("change", () => {
     console.log(`useCases/${selectedValue}`)
     console.log("use case graph has been retrieved")
     console.log(response)
-    container.innerText = "Done.  Hang tight while we populate the drop down box"
+    container.innerText = "Done.  Hang tight while we draw the graph"
     return response.status
   }
   ).then(resp => { 
@@ -338,7 +392,7 @@ useCasesDropdown.addEventListener("change", () => {
     if (resp == 200) {
       updateGraph()
     } else {
-      container.innerText = "Something unexpected happened.  check logs"
+      container.innerText = resp.toString()
     }
   })
 }
@@ -377,11 +431,31 @@ function updateArtifactList() {
         if (nestedList && nestedList.contains(e.target)) {
             // If a nested-list item is clicked
             const clickedItem = e.target;
-              const value = clickedItem.getAttribute('value');
-              if (value) {
+              const nodeId = clickedItem.getAttribute('value');
+              activeNodeId = nodeId
+              if (nodeId) {
                   // alert(`Value: ${value}`);
-                  drawSubgraph(value)
+                  drawSubgraph(nodeId)
+                  let node = getNode(nodeId)
+                  const nodeInfo = [];
+                  nodeInfo.push(`<strong>Node Details</strong> <br>`)
+                  const keys = Object.keys(node)
+                  for (let i = 0; i < keys.length; i++) {
+                    let k = keys[i]
+                    if (k === "url") { 
+                      nodeInfo.push(`<strong>${k}</strong><p><a href="${node[k]}">see asset in Datarobot</a> </p> <br>`)
+                    } else if (k == "parents") {
+                      nodeInfo.push(`<strong>parents</strong><pre id="json">${JSON.stringify(node[k], null, 2)}</pre> <br>`)
+                    } else {
+                      nodeInfo.push(`<strong>${k}</strong><p>${node[k]}</p> <br>`)
+                    }
+                  }
+                  sideBarContent.innerHTML = nodeInfo.join(``)
+                  // sideBarContent.appendChild(emailInput);
+                  // sideBarContent.appendChild(shareButton);
+                  sideBarContent.appendChild(exportButton)
               }
+              
         } else if (nestedList) {
             // If a parent list-item with a nested list is clicked
             e.stopPropagation(); // Prevent event propagation
@@ -392,37 +466,6 @@ function updateArtifactList() {
         }
     });
   })
-// document.querySelectorAll('.list-item').forEach(item => {
-//   item.addEventListener('click', function (e) {
-//       const nestedList = this.querySelector('.nested-list');
-//       console.log(nestedList)
-//       if (nestedList) {
-//           console.log("looking at nest list")
-//           console.log(nestedList)
-//           e.stopPropagation();
-//           nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
-//       } else {
-//         alert("Surprise")
-//       }
-//   });
-// });
-// document.querySelectorAll('.list-item').forEach(item => {
-//   item.addEventListener('click', function (e) {
-//       const nestedList = this.querySelector('.nested-list');
-//       if (nestedList && nestedList.contains(e.target)) {
-//           // If a nested-list item is clicked
-//           alert('Surprise!');
-//       } else if (nestedList) {
-//           // If a parent list-item with a nested list is clicked
-//           e.stopPropagation(); // Prevent event propagation
-//           nestedList.style.display = nestedList.style.display === 'block' ? 'none' : 'block';
-//       } else {
-//           // Leaf node without nested list
-//           alert('Surprise!');
-//       }
-//   });
-// });
-
 }
 
 
@@ -441,10 +484,6 @@ emailInput.id = 'emailInput'; // Optional: Set an ID for the input
 // Create a button
 const shareButton = document.createElement('button');
 shareButton.textContent = 'Share Node Asset and Parents (not working)'; // Set the button text
-
-// Append the input and button to the container
-
-
 // Add an event listener to the button
 shareButton.addEventListener('click', () => {
   const email = emailInput.value; // Get the email from the input
@@ -454,6 +493,54 @@ shareButton.addEventListener('click', () => {
     alert('Please enter a valid email.');
   }
 });
+
+// create an export button 
+
+const exportButton = document.createElement("button")
+exportButton.textContent = 'Export node, parents, and children'
+exportButton.addEventListener("click", function() {
+
+  const tsNodes = topologicalSort(nodes, edges)
+  const activeNode = getNode(activeNodeId)
+  const parents = getParents(activeNodeId).map( node => node.id) 
+  const children = getChildren(activeNodeId).map( node => node.id)
+  const exportNodes = tsNodes.filter(val => [activeNodeId].concat(parents).concat(children).includes(val.id))
+  // Convert data to JSON string
+  const jsonData = JSON.stringify(exportNodes, null, 2);
+  // Create a Blob from the data
+  const blob = new Blob([jsonData], { type: "application/json" });
+  // Create a temporary anchor element
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); // Create a URL for the Blob
+  a.download = "data.json"; // Set the file name for download
+  // Trigger the download
+  a.click();
+
+  // Cleanup the URL object
+  URL.revokeObjectURL(a.href);
+});
+
+
+const exportGraphButton = document.getElementById("export-graph")
+exportGraphButton.addEventListener("click", function() {
+  console.log("export graph button clicked!!")
+  const exportNodes = topologicalSort(nodes, edges)
+  // Convert data to JSON string
+  const jsonData = JSON.stringify(exportNodes, null, 2);
+  // Create a Blob from the data
+  const blob = new Blob([jsonData], { type: "application/json" });
+  // Create a temporary anchor element
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); // Create a URL for the Blob
+  a.download = "data.json"; // Set the file name for download
+  // Trigger the download
+  a.click();
+
+  // Cleanup the URL object
+  URL.revokeObjectURL(a.href);
+});
+
+
 
 ;
 

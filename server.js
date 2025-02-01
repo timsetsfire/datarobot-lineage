@@ -3,17 +3,13 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const SCRIPT_NAME = process.env.SCRIPT_NAME || "/apps/some-app-id"
-const port = 8080;
+const port = 8000;
 
 // const datarobotEndpoint = "https://app.datarobot.com/api/v2"
 // const datarobotToken = process.env.DATAROBOT_API_TOKEN
 var datarobotEndpoint = null
 var datarobotToken = null
 var useCaseId = null
-
-console.log(`SCRIPT_NAME env variable ${SCRIPT_NAME}`)
-
 
 // Run a Python script and return output
 function runPythonScript(scriptPath, args, callback) {
@@ -44,39 +40,9 @@ function runPythonScript(scriptPath, args, callback) {
   });
 }
 
-// runPythonScript(path.join(__dirname, "create_use_case_file.py"), [], (err, result) => {
-//   if (err) {
-//     console.error(`error -> ${err}`)
-//   } else {
-//     console.log("use case list retrieved")
-//   }
-// })
-
-const filesToCopy = [
-  path.join(__dirname, "style.css"),
-  path.join(__dirname, "script.js"),
-  path.join(__dirname, "button.js"),
-  path.join(__dirname, "datarobot.png"),
-]
-
-// '/lineage/style.css' -> '/lineage/apps/app12312399/style.css'
-function createAndCopy(dirPath, files) {
-  // console.log(dirPath)
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-  files.forEach(file => {
-    const sourcePath = path.resolve(file);
-    const destPath = path.join(dirPath, path.basename(file));
-    // console.log(`copy: copying ${sourcePath} to ${destPath}`)
-    fs.copyFileSync(sourcePath, destPath);
-  });
-}
-
 // Create an HTTP server
 const server = http.createServer((req, res) => {
-  createAndCopy(path.join(__dirname, `${SCRIPT_NAME}`), filesToCopy)
-  createAndCopy(path.join(__dirname, "apps"), filesToCopy)
+
   let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
   console.log(`filepath: ${filePath}`)
   const extname = path.extname(filePath);
@@ -107,7 +73,7 @@ const server = http.createServer((req, res) => {
       })
     })
       ;
-  } else if ((url === SCRIPT_NAME | url === `${SCRIPT_NAME}/`) && method === 'GET') {
+  } else if (url === "/" && method === 'GET') {
     // console.log(`url: ${url}`)
     let indexFilePath = path.join(__dirname, "index.html")
     // console.log(`index.html is located at ${indexFilePath}`)

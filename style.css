@@ -206,3 +206,15 @@ select {
     border-radius: 5px;
     cursor: pointer;
   }
+
+  .export-graph-button {
+    position: absolute; /* Position the button relative to the container */
+    bottom: 50px; /* Distance from the bottom edge */
+    left: 10px; /* Distance from the right edge */
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
