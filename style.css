@@ -14,7 +14,6 @@ body {
     width: 100%;
 }
 
-/* Left Sidebar */
 .sidebar {
     width: 250px;
     background-color: #f4f4f4;
@@ -25,6 +24,7 @@ body {
     height: 100%;
 }
 
+/* Left Sidebar */
 .left-sidebar {
     border-right: 1px solid #ccc;
     height: 100%;
@@ -33,18 +33,29 @@ body {
 .right-sidebar {
     border-left: 1px solid #ccc;
     height: 100%;
+    position: relative;
+    transition: all 0.3s ease;
+    transition: all 0.3s ease;
 }
+.right-sidebar.collapsed {
+    width: 0;
+    padding: 0;
+}
+.sidebar .toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 100px;
+    /* left: -40px; */
+    font-size: 30px;
+    /* background: #333; */
+    color: white;
+    border: none;
+    cursor: pointer;
+} 
 
 .sidebar h2 {
     margin-top: 0;
     font-size: 20px;
-}
-
-.search-bar input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
 }
 
 .list {

@@ -28,19 +28,27 @@ parser.add_argument(
 client = dr.Client()
 
 def get_datastore_node(datastore_id, use_case_id):
-    resp = client.get(f"externalDataStores/{datastore_id}").json()
-    node = dict( assetId = datastore_id, label = "datastore", 
+    try: 
+        resp = client.get(f"externalDataStores/{datastore_id}").json()
+        node = dict( assetId = datastore_id, label = "datastore", 
                 name = resp["canonicalName"], driverClassType = resp["driverClassType"],
                 parents = [], url = os.path.join(URL, "account", "data-connections"))
+    except Exception as e:
+        node = dict( assetId = datastore_id, label = "datastore", name = "unknown", parents = [], note = str(e))
     return node
 
 def get_datasource_node(datasource_id, datastore_id, use_case_id): 
-    resp = client.get(f"externalDataSources/{datasource_id}").json()
-    name = resp["canonicalName"]
-    datastore_id = resp["params"]["dataStoreId"] if datastore_id is None else datastore_id
-    node = dict(assetId = datasource_id, name = name, label = "datasource", 
-                 parents = [get_datastore_node(datastore_id, use_case_id)], 
-                 url = os.path.join(URL, "account", "data-connections"))
+    try:
+        resp = client.get(f"externalDataSources/{datasource_id}").json()
+        name = resp["canonicalName"]
+        datastore_id = resp["params"]["dataStoreId"] if datastore_id is None else datastore_id
+        node = dict(assetId = datasource_id, name = name, label = "datasource", 
+                    parents = [get_datastore_node(datastore_id, use_case_id)], 
+                    url = os.path.join(URL, "account", "data-connections"))
+    except Exception as e:
+        node = dict(assetId = datasource_id, name = "unknown", label = "datasource", 
+            parents = [], 
+            note = str(e))
     return node
 
 def get_recipe_node(recipe_id, use_case_id):
@@ -85,10 +93,14 @@ def get_dataset_node(dataset_id, dataset_version_id = None, use_case_id = None):
             name = dataset.get("name"),
             url = os.path.join(URL,"ai-catalog",dataset.get("datasetId")),
             parents = parents)
-        return dataset_node
     except Exception as e:
-        print(e)
-        return None
+        dataset_node = dict(assetId = dataset_id, 
+            assetVersionId = dataset_version_id if dataset_version_id else "unknown", 
+            label = "datasets", 
+            name = "unknown",
+            parents = [],
+            note = str(e))
+    return dataset_node
     
 
 def get_vectordatabase_node(vdb_id, use_case_id):
@@ -208,7 +220,6 @@ def get_deployment_node(dep_id, use_case_id):
             reg_model_versions = client.get(f"registeredModels/{reg_model_id}/versions").json()["data"]
             reg_model_version = [v for v in reg_model_versions if v["name"] == reg_model_name].pop()
             reg_model_node = get_registered_model_node(reg_model_id, reg_model_version["id"], use_case_id)
-            reg_model_node = {"assetId": reg_model_id, "note": e}
         except Exception as e:
             print(e)
             print("cant retrieve reg model versions")
@@ -262,7 +273,6 @@ def define_id(node, parents):
     
 
 if __name__ == "__main__":
-
     args = parser.parse_args()
 
     use_case_id = args.use_case_id

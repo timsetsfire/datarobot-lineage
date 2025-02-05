@@ -14,6 +14,12 @@ const edgesFilter = (edge) => {
   return true 
 }
 
+function toggleSidebar() {
+  console.log("anything?")
+  const sidebar = document.getElementById('right-sidebar');
+  console.log(sidebar.innerText)
+  sidebar.classList.toggle('collapsed');
+}
 var nodesDataset = new vis.DataSet(nodes)
 var edgesDataset = new vis.DataSet(edges)
 var nodesView = new vis.DataView(nodesDataset, { filter: nodesFilter });
@@ -137,22 +143,22 @@ var directionInput = document.getElementById("direction");
 var btnUD = document.getElementById("btn-UD");
 btnUD.onclick = function () {
   directionInput.value = "UD";
-  draw();
+  draw(false);
 };
 var btnDU = document.getElementById("btn-DU");
 btnDU.onclick = function () {
   directionInput.value = "DU";
-  draw();
+  draw(false);
 };
 var btnLR = document.getElementById("btn-LR");
 btnLR.onclick = function () {
   directionInput.value = "LR";
-  draw();
+  draw(false);
 };
 var btnRL = document.getElementById("btn-RL");
 btnRL.onclick = function () {
   directionInput.value = "RL";
-  draw();
+  draw(false);
 };
 
 function draw(resetFilter = true) { 
@@ -177,7 +183,7 @@ function draw(resetFilter = true) {
   network.on('click', function (event) {
     const { nodes: selectedNodes } = event;
     const node = nodes.filter(n => n.id == selectedNodes)[0];
-    activeNodeId = node.id
+    activeNodeId = node.id || null
     console.log(`logging active node id ${activeNodeId}`)
     if (selectedNodes.length > 0) {
       const nodeInfo = [];
